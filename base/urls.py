@@ -4,6 +4,6 @@ from .views import *
 urlpatterns = [
     path('upload/', view=post_media_info),
     path('verify/', view=get_media_info),
-    path('test/', views=test)
+    path('test/', view=test)
 
 ]
