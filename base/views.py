@@ -43,3 +43,8 @@ def get_media_info(request: Request):
                 return Response('file modified', status=status.HTTP_412_PRECONDITION_FAILED)
         else:
             return Response('files does\'t exist', status=status.HTTP_404_NOT_FOUND)
+        
+
+@api_view(['GET'])
+def test(request: Request):
+    return Response('test')
