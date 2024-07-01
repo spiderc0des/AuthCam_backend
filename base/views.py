@@ -25,8 +25,8 @@ def post_media_info(request: Request):
 @api_view(['POST'])
 def get_media_info(request: Request):
 
-    uuid = request.data['imageName']
-    hash_value = request.data['hash']
+    uuid = request.data['uuid']
+    hash_value = request.data['hash_value']
     """
     View to retrieve a MediaInfo entry from the database by primary key.
     """
