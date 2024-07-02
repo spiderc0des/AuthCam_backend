@@ -45,7 +45,7 @@ def get_media_info(request: Request):
                 return Response('file modified', status=status.HTTP_412_PRECONDITION_FAILED)
            
         except MediaInfo.DoesNotExist:
-            return Http404("Media not found.")
+            return Response("Media not found.", status=status.HTTP_404_NOT_FOUND)
         
 
 @api_view(['GET'])
