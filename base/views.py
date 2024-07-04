@@ -18,7 +18,7 @@ def post_media_info(request: Request):
         serializer = MediaInfoSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response('Media file info saved to database', status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
@@ -40,12 +40,12 @@ def get_media_info(request: Request):
 
             if hash_value == serializer.data['hash_value']:
 
-                return Response('verified', status=status.HTTP_302_FOUND)
+                return Response('Media file is authentic', status=status.HTTP_302_FOUND)
             else:
-                return Response('file modified', status=status.HTTP_412_PRECONDITION_FAILED)
+                return Response('Media file has been modified', status=status.HTTP_412_PRECONDITION_FAILED)
            
         except MediaInfo.DoesNotExist:
-            return Response("Media not found.", status=status.HTTP_404_NOT_FOUND)
+            return Response("Media file not found in the database.", status=status.HTTP_404_NOT_FOUND)
         
 
 @api_view(['GET'])
