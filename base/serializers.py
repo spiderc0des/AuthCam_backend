@@ -8,8 +8,8 @@ class MediaInfoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MediaInfo
-        fields = ['user', 'uuid', 'hash_value', 'timestamp', 'image']
-        read_only_fields = ['uuid', 'hash_value', 'user']
+        fields = ['user', 'uuid', 'hash_value', 'image']
+        read_only_fields = ['uuid', 'hash_value', 'user', 'timestamp']
 
     def validate_image(self, value):
         try:
