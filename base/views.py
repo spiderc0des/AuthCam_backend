@@ -13,6 +13,8 @@ from django.contrib.auth import get_user
 import os
 from .models import MediaInfo
 from authcam.settings import BASE_DIR
+import base64
+
 
 class PostMediaInfoView(APIView):
 
@@ -57,16 +59,19 @@ class PostMediaInfoView(APIView):
                 instance.user = request.user.username
                 instance.save()
 
-                # Open the modified image to send it in the response
-                with open(image_path, 'rb') as img:
-                    response = HttpResponse(img.read(), content_type="image/png")
-                    response['Content-Disposition'] = f'attachment; filename="{unique_id}.png"'
+                # Encode the image to base64
+                with open(image_path, "rb") as image_file:
+                    encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+                
+                response_data = {
+                    'image': encoded_string,
+                    'filename': f"{unique_id}.png"
+                }
 
-                print(BASE_DIR/image_path)
                 # Clean up the temporary file
-                os.remove(BASE_DIR/image_path)
+                os.remove(image_path)
 
-                return response
+                return Response(response_data, status=status.HTTP_200_OK)
 
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
