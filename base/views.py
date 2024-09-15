@@ -13,21 +13,22 @@ from django.contrib.auth import get_user
 import os
 from .models import MediaInfo
 from authcam.settings import BASE_DIR
-import base64
+from django.conf import settings
+
 
 
 class PostMediaInfoView(APIView):
-
     permission_classes = [IsAuthenticated]
+
     @staticmethod
     def add_uuid(image_path):
         unique_id = str(uuid.uuid4())
         image = PILImage.open(image_path)
         exif_dict = {'Exif': {piexif.ExifIFD.UserComment: unique_id.encode('utf-8')}}
         exif_bytes = piexif.dump(exif_dict)
-        image.save(image_path, "png", exif=exif_bytes)
-        print(f"Image saved with UUID: {unique_id}")
-        return unique_id
+        modified_image_path = f"{os.path.splitext(image_path)[0]}_{unique_id}.png"
+        image.save(modified_image_path, "png", exif=exif_bytes)
+        return unique_id, modified_image_path
 
     @staticmethod
     def hash_image(image_path):
@@ -35,52 +36,41 @@ class PostMediaInfoView(APIView):
             byte_arr = io.BytesIO()
             img.save(byte_arr, format='PNG')
             image_bytes = byte_arr.getvalue()
-
         hash_obj = hashlib.sha256()
         hash_obj.update(image_bytes)
         image_hash = hash_obj.hexdigest()
-        print(f"{image_path}")
-        print(f"Hash of the captured image: {image_hash}")
         return image_hash
 
     def post(self, request):
-            print(request.user)
-            serializer = MediaInfoSerializer(data=request.data, context={'request': request})
-            if serializer.is_valid():
-                instance = serializer.save()
+        serializer = MediaInfoSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            instance = serializer.save()
+            image_file = request.FILES.get('image')
+            image_path = self.handle_uploaded_file(image_file)
+            unique_id, modified_image_path = self.add_uuid(image_path)  # Get both unique ID and the path of the modified image
+            image_hash = self.hash_image(modified_image_path)  # Make sure to hash the modified image
 
-                image_file = request.FILES.get('image')
-                image_path = self.handle_uploaded_file(image_file)
-                unique_id = self.add_uuid(image_path)
-                image_hash = self.hash_image(image_path)
+            instance.uuid = unique_id
+            instance.hash_value = image_hash
+            instance.user = request.user.username
+            instance.save()
 
-                instance.uuid = unique_id
-                instance.hash_value = image_hash
-                instance.user = request.user.username
-                instance.save()
+            image_url = request.build_absolute_uri(f'{settings.MEDIA_URL}processed_images/{os.path.basename(modified_image_path)}')
 
-                # Encode the image to base64
-                with open(image_path, "rb") as image_file:
-                    encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
-                
-                response_data = {
-                    'image': encoded_string,
-                    'filename': f"{unique_id}.png"
-                }
+            # Clean up the temporary file if needed
+            # os.remove(modified_image_path)
 
-                # Clean up the temporary file
-                os.remove(image_path)
+            return Response({'url': image_url}, status=status.HTTP_200_OK)
 
-                return Response(response_data, status=status.HTTP_200_OK)
-
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def handle_uploaded_file(self, f):
-        temp_path = f'tmp_{uuid.uuid4()}.png'
+        temp_path = os.path.join(settings.MEDIA_ROOT, f'processed_images/{uuid.uuid4()}.png')
         with open(temp_path, 'wb+') as destination:
             for chunk in f.chunks():
                 destination.write(chunk)
         return temp_path
+
 
 
 class VerifyMediaInfoView(APIView):
