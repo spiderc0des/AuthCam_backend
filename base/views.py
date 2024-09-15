@@ -14,6 +14,8 @@ import os
 from .models import MediaInfo
 from authcam.settings import BASE_DIR
 from django.conf import settings
+import datetime
+
 
 
 
@@ -94,9 +96,23 @@ class VerifyMediaInfoView(APIView):
 
         # Verify hash
         if rehashed_value == media_info.hash_value:
-            return Response("Media file is authentic", status=status.HTTP_200_OK)
+        
+            user = media_info.user
+            time = media_info.timestamp
+
+            time_stamp = time.strftime('%Y-%m-%d %H:%M:%S')
+            response = {
+                'Image creator': user,
+                'Timestamp': time_stamp
+            }
+
+            return Response(response, status=status.HTTP_200_OK)
         else:
-            return Response("Media file has been modified", status=status.HTTP_412_PRECONDITION_FAILED)
+            response = {
+                'Image creator': user,
+                'Timestamp': time_stamp
+            }
+            return Response(response, status=status.HTTP_412_PRECONDITION_FAILED)
 
     @staticmethod
     def handle_uploaded_file(f):
